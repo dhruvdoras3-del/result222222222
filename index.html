@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Result Analyzer</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.1.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f7f8fc;--card:#fff;--border:#e2e6f0;--text:#1a1d2e;--muted:#6b7280;
+    --blue:#2563eb;--green:#16a34a;--amber:#d97706;--red:#dc2626;--purple:#7c3aed;
+    --teal:#0d9488;--blue-light:#eff6ff;--green-light:#f0fdf4;--amber-light:#fffbeb;
+    --red-light:#fef2f2;--purple-light:#f5f3ff;--sidebar-w:220px;
+  }
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;min-height:100vh}
+  
+  /* SIDEBAR */
+  .sidebar{width:var(--sidebar-w);background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto}
+  .sidebar-brand{padding:1.25rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .brand-icon{width:34px;height:34px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0}
+  .brand-text{font-size:13px;font-weight:600;line-height:1.2}
+  .brand-sub{font-size:11px;color:var(--muted)}
+  .nav-section{padding:.75rem .75rem .25rem;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:.55rem .75rem;border-radius:6px;cursor:pointer;color:var(--muted);font-size:13px;margin:1px 6px;transition:all .12s}
+  .nav-item i{font-size:17px;flex-shrink:0}
+  .nav-item:hover{background:#f1f5fd;color:var(--text)}
+  .nav-item.active{background:var(--blue-light);color:var(--blue);font-weight:500}
+  .sidebar-bottom{margin-top:auto;padding:.75rem;border-top:1px solid var(--border)}
+  
+  /* MAIN */
+  .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+  .topbar{padding:.75rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+  .topbar-left{display:flex;flex-direction:column}
+  .page-title{font-size:17px;font-weight:600}
+  .page-sub{font-size:12px;color:var(--muted);margin-top:1px}
+  .topbar-right{display:flex;gap:8px;align-items:center}
+  .content{padding:1.25rem 1.5rem;flex:1}
+  
+  /* CARDS & METRICS */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1.1rem}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+  .card-title{font-size:13px;font-weight:600;color:var(--text)}
+  .card-sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:1.25rem}
+  .metric-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem}
+  .metric-label{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.02em;margin-bottom:4px}
+  .metric-val{font-size:24px;font-weight:700;line-height:1}
+  .metric-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;margin-top:5px;padding:2px 7px;border-radius:20px}
+  .badge-up{background:#dcfce7;color:#15803d}
+  .badge-down{background:#fee2e2;color:#b91c1c}
+  .badge-neutral{background:#f3f4f6;color:var(--muted)}
+  
+  /* GRID LAYOUTS */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem}
+  .grid-full{margin-bottom:1rem}
+  
+  /* CHARTS */
+  .chart-box{position:relative;width:100%}
+  
+  /* BUTTONS */
+  .btn{padding:7px 14px;font-size:13px;border:1px solid var(--border);border-radius:7px;background:var(--card);color:var(--text);cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all .12s}
+  .btn:hover{background:#f1f5fd;border-color:#c7d2fe}
+  .btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .btn-primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  
+  /* TABLE */
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:500;white-space:nowrap}
+  td{padding:9px 12px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#f9fafb}
+  
+  /* BADGE */
+  .grade-badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
+  .g-A{background:#dcfce7;color:#15803d}
+  .g-B{background:#dbeafe;color:#1d4ed8}
+  .g-C{background:#fef9c3;color:#a16207}
+  .g-D{background:#ffedd5;color:#c2410c}
+  .g-F{background:#fee2e2;color:#b91c1c}
+  
+  /* FORMS */
+  input,select{padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:7px;background:var(--card);color:var(--text);width:100%}
+  input:focus,select:focus{outline:2px solid var(--blue);outline-offset:0;border-color:var(--blue)}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:1rem}
+  .form-label{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:3px}
+  
+  /* PROGRESS */
+  .prog-bg{background:#f3f4f6;border-radius:20px;height:5px;margin-top:3px}
+  .prog-fill{height:5px;border-radius:20px;transition:width .5s ease}
+  
+  /* TABS (predict page) */
+  .page-content{display:none}
+  .page-content.active{display:block}
+  
+  /* INSIGHTS */
+  .insight-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6}
+  .insight-item:last-child{border-bottom:none}
+  .insight-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .ico-red{background:#fee2e2;color:#dc2626}
+  .ico-amber{background:#fef3c7;color:#d97706}
+  .ico-green{background:#dcfce7;color:#16a34a}
+  .ico-blue{background:#dbeafe;color:#2563eb}
+  
+  /* MODAL OVERLAY */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
+  .modal-overlay.open{display:flex}
+  .modal-box{background:var(--card);border-radius:12px;width:100%;max-width:560px;padding:1.5rem;max-height:90vh;overflow-y:auto}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+  .modal-title{font-size:16px;font-weight:600}
+  
+  /* LEGEND */
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px}
+  .legend span{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+  .leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+  
+  /* PRINT */
+  @media print{.sidebar,.topbar-right,.btn{display:none}.main{margin-left:0}}
+  
+  /* RESPONSIVE */
+  @media(max-width:768px){
+    .sidebar{transform:translateX(-100%)}
+    .main{margin-left:0}
+    .grid-2,.grid-3{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><i class="ti ti-school"></i></div>
+    <div>
+      <div class="brand-text">Result Analyzer</div>
+      <div class="brand-sub">Academic Year 2025–26</div>
+    </div>
+  </div>
+  <div class="nav-section">Main</div>
+  <div class="nav-item active" onclick="navigate('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
+  <div class="nav-item" onclick="navigate('students',this)"><i class="ti ti-users"></i> Students</div>
+  <div class="nav-item" onclick="navigate('results',this)"><i class="ti ti-clipboard-list"></i> Results</div>
+  <div class="nav-section">Analytics</div>
+  <div class="nav-item" onclick="navigate('predict',this)"><i class="ti ti-crystal-ball"></i> Predictions</div>
+  <div class="nav-item" onclick="navigate('insights',this)"><i class="ti ti-bulb"></i> Insights</div>
+  <div class="nav-item" onclick="navigate('compare',this)"><i class="ti ti-chart-bar"></i> Compare</div>
+  <div class="nav-section">Tools</div>
+  <div class="nav-item" onclick="navigate('report',this)"><i class="ti ti-file-text"></i> Reports</div>
+  <div class="nav-item" onclick="navigate('settings',this)"><i class="ti ti-settings"></i> Settings</div>
+  <div class="sidebar-bottom">
+    <div style="font-size:11px;color:var(--muted);text-align:center">Student Result Analyzer v2.0</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="page-title" id="pageTitle">Dashboard</div>
+      <div class="page-sub" id="pageSub">Overview of all student performance</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i> Export CSV</button>
+      <button class="btn btn-primary btn-sm" onclick="openAddModal()"><i class="ti ti-plus"></i> Add Student</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="page-content active">
+      <div class="metrics-grid" id="metricsGrid"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">Subject averages — Term 3</div><div class="card-sub">Class performance per subject</div></div></div>
+          <div class="legend" id="subLegend"></div>
+          <div class="chart-box" style="height:220px"><canvas id="subjectChart" role="img" aria-label="Bar chart showing average scores per subject in Term 3">Subject averages for Term 3.</canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">Grade distribution</div><div class="card-sub">Current term grade spread</div></div></div>
+          <div class="legend" id="gradeLegend"></div>
+          <div class="chart-box" style="height:220px"><canvas id="gradeChart" role="img" aria-label="Doughnut chart of grade distribution">Grade distribution of students.</canvas></div>
+        </div>
+      </div>
+      <div class="card grid-full">
+        <div class="card-header"><div><div class="card-title">Class performance trend</div><div class="card-sub">Terms 1–3 actual + Terms 4–5 predicted via linear regression</div></div></div>
+        <div class="legend" id="trendLegend"></div>
+        <div class="chart-box" style="height:230px"><canvas id="trendChart" role="img" aria-label="Line chart showing term-by-term class average with future prediction">Class average trend with predictions.</canvas></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">Top 5 performers</div><div class="card-sub">Current term</div></div></div>
+          <div class="chart-box" style="height:220px"><canvas id="topChart" role="img" aria-label="Horizontal bar chart of top 5 students">Top performing students this term.</canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">Attendance vs score</div><div class="card-sub">Correlation analysis</div></div></div>
+          <div class="chart-box" style="height:220px"><canvas id="attendChart" role="img" aria-label="Scatter chart of attendance versus score correlation">Attendance to score correlation.</canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDENTS PAGE -->
+    <div id="page-students" class="page-content">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+        <input id="searchBox" placeholder="Search by name or class…" oninput="renderTable()" style="flex:1;min-width:180px">
+        <select id="gradeFilter" onchange="renderTable()" style="width:130px">
+          <option value="">All grades</option>
+          <option>A</option><option>B</option><option>C</option><option>D</option><option>F</option>
+        </select>
+        <select id="trendFilter" onchange="renderTable()" style="width:140px">
+          <option value="">All trends</option>
+          <option value="up">Improving</option>
+          <option value="down">Declining</option>
+          <option value="stable">Stable</option>
+        </select>
+        <select id="classFilter" onchange="renderTable()" style="width:120px" id="classFilter">
+          <option value="">All classes</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Student</th><th>Class</th><th>Math</th><th>Science</th><th>English</th><th>History</th><th>CS</th><th>Average</th><th>Grade</th><th>Trend</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS PAGE -->
+    <div id="page-results" class="page-content">
+      <div class="card grid-full">
+        <div class="card-header"><div><div class="card-title">Subject-wise result breakdown</div></div></div>
+        <div class="chart-box" style="height:280px"><canvas id="subjectBreakChart" role="img" aria-label="Grouped bar chart of all subjects across all students">Subject score breakdown.</canvas></div>
+      </div>
+      <div class="card grid-full" style="margin-top:1rem">
+        <div class="card-header"><div><div class="card-title">Score distribution histogram</div><div class="card-sub">How scores are spread across the class</div></div></div>
+        <div class="chart-box" style="height:220px"><canvas id="histoChart" role="img" aria-label="Histogram of score distribution">Score distribution histogram.</canvas></div>
+      </div>
+    </div>
+
+    <!-- PREDICTIONS PAGE -->
+    <div id="page-predict" class="page-content">
+      <div class="card grid-full">
+        <div class="card-header"><div><div class="card-title">Class-level future prediction (next 2 terms)</div><div class="card-sub">Linear regression applied per-subject to forecast performance</div></div></div>
+        <div class="legend" id="predLegend"></div>
+        <div class="chart-box" style="height:260px"><canvas id="predictChart" role="img" aria-label="Bar chart comparing actual vs predicted class scores per term">Actual and predicted scores by term.</canvas></div>
+      </div>
+      <div class="card grid-full" style="margin-top:1rem">
+        <div class="card-header">
+          <div><div class="card-title">Individual student forecast</div><div class="card-sub">Select a student to see their predicted Term 4 scores</div></div>
+        </div>
+        <select id="predictStudentSel" onchange="renderIndividualPredict()" style="max-width:280px;margin-bottom:1rem"></select>
+        <div id="individualPredictArea"></div>
+      </div>
+    </div>
+
+    <!-- INSIGHTS PAGE -->
+    <div id="page-insights" class="page-content">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">Smart alerts</div><div class="card-sub">Automated performance flags</div></div></div>
+          <div id="insightsList"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">Subject strength radar</div><div class="card-sub">Class vs target (85%)</div></div></div>
+          <div class="chart-box" style="height:220px"><canvas id="radarChart" role="img" aria-label="Radar chart showing class subject strengths vs target">Subject strength radar.</canvas></div>
+        </div>
+      </div>
+      <div class="card grid-full" style="margin-top:1rem">
+        <div class="card-header"><div><div class="card-title">At-risk students</div><div class="card-sub">Students needing intervention</div></div></div>
+        <div id="atRiskArea"></div>
+      </div>
+    </div>
+
+    <!-- COMPARE PAGE -->
+    <div id="page-compare" class="page-content">
+      <div class="card grid-full">
+        <div class="card-header"><div><div class="card-title">Compare students</div><div class="card-sub">Select up to 3 students to compare side-by-side</div></div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+          <select id="cmp1" onchange="renderCompare()" style="flex:1"><option value="">— Student 1 —</option></select>
+          <select id="cmp2" onchange="renderCompare()" style="flex:1"><option value="">— Student 2 —</option></select>
+          <select id="cmp3" onchange="renderCompare()" style="flex:1"><option value="">— Student 3 —</option></select>
+        </div>
+        <div class="chart-box" style="height:280px"><canvas id="compareChart" role="img" aria-label="Grouped bar chart comparing selected students per subject">Student comparison chart.</canvas></div>
+      </div>
+    </div>
+
+    <!-- REPORT PAGE -->
+    <div id="page-report" class="page-content">
+      <div class="card grid-full">
+        <div class="card-header"><div><div class="card-title">Generate class report</div></div></div>
+        <div id="reportArea"></div>
+        <div style="margin-top:1rem;display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="generateReport()"><i class="ti ti-file-text"></i> Generate report</button>
+          <button class="btn" onclick="window.print()"><i class="ti ti-printer"></i> Print</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="page-settings" class="page-content">
+      <div class="card" style="max-width:480px">
+        <div class="card-header"><div class="card-title">Academic settings</div></div>
+        <div style="margin-bottom:1rem">
+          <div class="form-label">Passing mark (%)</div>
+          <input type="number" id="passMark" value="50" min="0" max="100">
+        </div>
+        <div style="margin-bottom:1rem">
+          <div class="form-label">Grade A threshold (%)</div>
+          <input type="number" id="gradeA" value="90" min="0" max="100">
+        </div>
+        <div style="margin-bottom:1rem">
+          <div class="form-label">Grade B threshold (%)</div>
+          <input type="number" id="gradeB" value="75" min="0" max="100">
+        </div>
+        <div style="margin-bottom:1rem">
+          <div class="form-label">Grade C threshold (%)</div>
+          <input type="number" id="gradeC" value="60" min="0" max="100">
+        </div>
+        <div style="margin-bottom:1rem">
+          <div class="form-label">Grade D threshold (%)</div>
+          <input type="number" id="gradeD" value="45" min="0" max="100">
+        </div>
+        <button class="btn btn-primary" onclick="applySettings()"><i class="ti ti-check"></i> Apply settings</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ADD STUDENT MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add new student</div>
+      <button class="btn btn-sm" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div><div class="form-label">Full name *</div><input id="f_name" placeholder="e.g. Aarav Sharma"></div>
+      <div><div class="form-label">Class *</div><input id="f_class" placeholder="e.g. 10A"></div>
+      <div><div class="form-label">Math (0–100)</div><input id="f_math" type="number" min="0" max="100" placeholder="75"></div>
+      <div><div class="form-label">Science (0–100)</div><input id="f_science" type="number" min="0" max="100" placeholder="80"></div>
+      <div><div class="form-label">English (0–100)</div><input id="f_english" type="number" min="0" max="100" placeholder="70"></div>
+      <div><div class="form-label">History (0–100)</div><input id="f_history" type="number" min="0" max="100" placeholder="65"></div>
+      <div><div class="form-label">Computer Science (0–100)</div><input id="f_cs" type="number" min="0" max="100" placeholder="85"></div>
+      <div><div class="form-label">Attendance (%)</div><input id="f_attend" type="number" min="0" max="100" placeholder="92"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="saveStudent()"><i class="ti ti-check"></i> Save student</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- DATA ----
+const SUBJECTS = ['Math','Science','English','History','CS'];
+const COLORS   = ['#2563eb','#16a34a','#d97706','#7c3aed','#0d9488'];
+const COLORS_LIGHT = ['#dbeafe','#dcfce7','#fef3c7','#f5f3ff','#ccfbf1'];
+
+let settings = { gradeA:90, gradeB:75, gradeC:60, gradeD:45, passMark:50 };
+
+let students = [
+  {id:1,name:'Aarav Sharma',  class:'10A',t1:[72,68,75,70,65],t2:[78,74,80,73,70],t3:[85,80,82,78,75],attend:88},
+  {id:2,name:'Priya Patel',   class:'10A',t1:[90,88,92,85,88],t2:[93,91,94,89,90],t3:[96,94,97,92,93],attend:98},
+  {id:3,name:'Rahul Verma',   class:'10B',t1:[55,60,52,58,50],t2:[58,62,55,60,54],t3:[52,58,50,55,48],attend:72},
+  {id:4,name:'Sneha Gupta',   class:'10B',t1:[80,75,78,82,79],t2:[83,79,81,85,82],t3:[87,84,86,88,85],attend:94},
+  {id:5,name:'Arjun Mehta',   class:'10C',t1:[65,70,68,62,67],t2:[70,72,71,66,69],t3:[74,76,75,70,73],attend:85},
+  {id:6,name:'Kavya Nair',    class:'10C',t1:[88,91,87,90,89],t2:[90,92,89,91,90],t3:[93,95,92,93,91],attend:97},
+  {id:7,name:'Dev Shah',      class:'10A',t1:[40,45,38,42,35],t2:[44,48,42,46,40],t3:[38,42,35,40,33],attend:65},
+  {id:8,name:'Meera Iyer',    class:'10B',t1:[76,80,74,78,77],t2:[79,83,77,81,80],t3:[83,87,82,85,84],attend:92},
+  {id:9,name:'Rohan Joshi',   class:'10C',t1:[62,58,65,60,63],t2:[65,62,68,63,66],t3:[70,67,73,68,71],attend:80},
+  {id:10,name:'Ananya Singh', class:'10A',t1:[84,87,83,86,85],t2:[87,89,86,88,87],t3:[91,92,90,93,89],attend:96},
+];
+
+// ---- HELPERS ----
+const avg = a => a.reduce((s,v)=>s+v,0)/a.length;
+const round = v => Math.round(v);
+
+function getGrade(score){
+  if(score>=settings.gradeA) return 'A';
+  if(score>=settings.gradeB) return 'B';
+  if(score>=settings.gradeC) return 'C';
+  if(score>=settings.gradeD) return 'D';
+  return 'F';
+}
+function getTrend(s){
+  const d = avg(s.t3) - avg(s.t1);
+  return d>5?'up':d<-5?'down':'stable';
+}
+function trendHtml(t){
+  const map={up:{ico:'ti-trending-up',col:'#16a34a',lbl:'Improving'},down:{ico:'ti-trending-down',col:'#dc2626',lbl:'Declining'},stable:{ico:'ti-minus',col:'#6b7280',lbl:'Stable'}};
+  const m=map[t];
+  return`<span style="color:${m.col};display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:500"><i class="ti ${m.ico}" style="font-size:14px"></i>${m.lbl}</span>`;
+}
+
+// Linear regression prediction
+function predict(values){
+  const n=values.length,sx=n*(n-1)/2,sy=values.reduce((a,b)=>a+b,0);
+  let sxy=0;
+  for(let i=0;i<n;i++) sxy+=i*values[i];
+  const sxx=n*(n-1)*(2*n-1)/6;
+  const m=(n*sxy-sx*sy)/(n*sxx-sx*sx)||0;
+  const b=(sy-m*sx)/n;
+  return Math.min(100,Math.max(0,Math.round(m*n+b)));
+}
+
+// ---- CHARTS ----
+const charts={};
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+
+function renderSubjectChart(){
+  destroyChart('subjectChart');
+  const avgs=SUBJECTS.map((_,i)=>round(avg(students.map(s=>s.t3[i]))));
+  document.getElementById('subLegend').innerHTML=SUBJECTS.map((s,i)=>`<span><span class="leg-dot" style="background:${COLORS[i]}"></span>${s} ${avgs[i]}%</span>`).join('');
+  charts.subjectChart=new Chart(document.getElementById('subjectChart'),{
+    type:'bar',
+    data:{labels:SUBJECTS,datasets:[{data:avgs,backgroundColor:COLORS,borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}}}
+  });
+}
+
+function renderGradeChart(){
+  destroyChart('gradeChart');
+  const counts={A:0,B:0,C:0,D:0,F:0};
+  students.forEach(s=>counts[getGrade(round(avg(s.t3)))]++);
+  const keys=Object.keys(counts).filter(k=>counts[k]>0);
+  const bgMap={A:'#16a34a',B:'#2563eb',C:'#d97706',D:'#ea580c',F:'#dc2626'};
+  document.getElementById('gradeLegend').innerHTML=keys.map(k=>`<span><span class="leg-dot" style="background:${bgMap[k]}"></span>${k}: ${counts[k]}</span>`).join('');
+  charts.gradeChart=new Chart(document.getElementById('gradeChart'),{
+    type:'doughnut',
+    data:{labels:keys,datasets:[{data:keys.map(k=>counts[k]),backgroundColor:keys.map(k=>bgMap[k]),borderWidth:3,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false}}}
+  });
+}
+
+function renderTrendChart(){
+  destroyChart('trendChart');
+  const ta=term=>round(avg(students.map(s=>avg(s[term]))));
+  const t1=ta('t1'),t2=ta('t2'),t3=ta('t3');
+  const t4=predict([t1,t2,t3]);
+  const t5=predict([t1,t2,t3,t4]);
+  document.getElementById('trendLegend').innerHTML=`
+    <span><span class="leg-dot" style="background:#2563eb"></span>Actual</span>
+    <span><span class="leg-dot" style="background:#7c3aed"></span>Predicted</span>
+    <span style="font-size:11px;background:#f5f3ff;color:#7c3aed;padding:2px 8px;border-radius:20px;font-weight:500">AI Prediction</span>`;
+  charts.trendChart=new Chart(document.getElementById('trendChart'),{
+    type:'line',
+    data:{
+      labels:['Term 1','Term 2','Term 3','Term 4 (pred.)','Term 5 (pred.)'],
+      datasets:[
+        {label:'Actual',data:[t1,t2,t3,null,null],borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.06)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#2563eb',borderWidth:2.5},
+        {label:'Predicted',data:[null,null,t3,t4,t5],borderColor:'#7c3aed',borderDash:[7,4],backgroundColor:'rgba(124,58,237,.04)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#7c3aed',borderWidth:2}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:50,max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}}}
+  });
+}
+
+function renderTopChart(){
+  destroyChart('topChart');
+  const sorted=[...students].sort((a,b)=>avg(b.t3)-avg(a.t3)).slice(0,5);
+  charts.topChart=new Chart(document.getElementById('topChart'),{
+    type:'bar',
+    data:{
+      labels:sorted.map(s=>s.name.split(' ')[0]),
+      datasets:[{data:sorted.map(s=>round(avg(s.t3))),backgroundColor:sorted.map(s=>{const g=getGrade(round(avg(s.t3)));return g==='A'?'#16a34a':g==='B'?'#2563eb':'#d97706'}),borderRadius:7,borderSkipped:false}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}},y:{grid:{display:false}}}}
+  });
+}
+
+function renderAttendChart(){
+  destroyChart('attendChart');
+  const data=students.map(s=>({x:s.attend,y:round(avg(s.t3)),name:s.name}));
+  charts.attendChart=new Chart(document.getElementById('attendChart'),{
+    type:'scatter',
+    data:{datasets:[{label:'Students',data,backgroundColor:COLORS[0]+'cc',pointRadius:7,pointHoverRadius:9}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:p=>`${data[p.dataIndex].name}: ${p.raw.x}% att, ${p.raw.y}% score`}}},
+      scales:{x:{min:60,max:100,title:{display:true,text:'Attendance %'},ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}},y:{min:30,max:100,title:{display:true,text:'Score %'},ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}}}}
+  });
+}
+
+function renderSubjectBreakChart(){
+  destroyChart('subjectBreakChart');
+  charts.subjectBreakChart=new Chart(document.getElementById('subjectBreakChart'),{
+    type:'bar',
+    data:{
+      labels:students.map(s=>s.name.split(' ')[0]),
+      datasets:SUBJECTS.map((sub,i)=>({label:sub,data:students.map(s=>s.t3[i]),backgroundColor:COLORS[i],borderRadius:3,borderSkipped:false}))
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:false,grid:{display:false}},y:{min:0,max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}}}}
+  });
+}
+
+function renderHistoChart(){
+  destroyChart('histoChart');
+  const allScores=students.flatMap(s=>s.t3);
+  const buckets=Array(10).fill(0);
+  allScores.forEach(v=>{const b=Math.min(9,Math.floor(v/10));buckets[b]++});
+  const labels=['0–9','10–19','20–29','30–39','40–49','50–59','60–69','70–79','80–89','90–100'];
+  charts.histoChart=new Chart(document.getElementById('histoChart'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'# scores',data:buckets,backgroundColor:buckets.map((_,i)=>i>=7?'#16a34a':i>=5?'#d97706':'#dc2626'),borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,.05)'}}}}
+  });
+}
+
+function renderPredictChart(){
+  destroyChart('predictChart');
+  const ta=term=>SUBJECTS.map((_,i)=>round(avg(students.map(s=>s[term][i]))));
+  const t3=ta('t3');
+  const t4=t3.map((_,i)=>predict([avg(students.map(s=>s.t1[i])),avg(students.map(s=>s.t2[i])),t3[i]]));
+  const t5=t4.map((_,i)=>predict([avg(students.map(s=>s.t1[i])),avg(students.map(s=>s.t2[i])),t3[i],t4[i]]));
+  document.getElementById('predLegend').innerHTML=`
+    <span><span class="leg-dot" style="background:#2563eb"></span>Term 3 (actual)</span>
+    <span><span class="leg-dot" style="background:#7c3aed"></span>Term 4 (predicted)</span>
+    <span><span class="leg-dot" style="background:#0d9488"></span>Term 5 (predicted)</span>`;
+  charts.predictChart=new Chart(document.getElementById('predictChart'),{
+    type:'bar',
+    data:{
+      labels:SUBJECTS,
+      datasets:[
+        {label:'Term 3',data:t3,backgroundColor:'#2563eb',borderRadius:5,borderSkipped:false},
+        {label:'Term 4',data:t4,backgroundColor:'#7c3aed',borderRadius:5,borderSkipped:false},
+        {label:'Term 5',data:t5,backgroundColor:'#0d9488',borderRadius:5,borderSkipped:false}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{min:50,max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}}}}
+  });
+}
+
+function populatePredictSelect(){
+  const sel=document.getElementById('predictStudentSel');
+  sel.innerHTML=students.map(s=>`<option value="${s.id}">${s.name} (${s.class})</option>`).join('');
+  renderIndividualPredict();
+}
+
+function renderIndividualPredict(){
+  const id=parseInt(document.getElementById('predictStudentSel').value);
+  const s=students.find(x=>x.id===id);
+  if(!s)return;
+  const predScores=SUBJECTS.map((_,i)=>predict([s.t1[i],s.t2[i],s.t3[i]]));
+  const curAvg=round(avg(s.t3));
+  const predAvg=round(avg(predScores));
+  const cg=getGrade(curAvg),pg=getGrade(predAvg);
+  const grBg={A:'#dcfce7',B:'#dbeafe',C:'#fef3c7',D:'#ffedd5',F:'#fee2e2'};
+  const grTx={A:'#15803d',B:'#1d4ed8',C:'#a16207',D:'#c2410c',F:'#b91c1c'};
+  document.getElementById('individualPredictArea').innerHTML=`
+    <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.25rem;padding:1rem;background:#f9fafb;border-radius:8px">
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Current grade (T3)</div>
+        <span style="font-size:20px;font-weight:700;background:${grBg[cg]};color:${grTx[cg]};padding:4px 14px;border-radius:8px">${cg} — ${curAvg}%</span>
+      </div>
+      <div style="font-size:24px;color:var(--muted)">→</div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Predicted grade (T4)</div>
+        <span style="font-size:20px;font-weight:700;background:${grBg[pg]};color:${grTx[pg]};padding:4px 14px;border-radius:8px">${pg} — ${predAvg}%</span>
+      </div>
+    </div>
+    <div style="display:grid;gap:10px">
+      ${SUBJECTS.map((sub,i)=>{
+        const cur=s.t3[i],p=predScores[i],diff=p-cur;
+        return`<div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span style="color:var(--muted);font-weight:500">${sub}</span>
+            <span>${cur}% → <strong style="color:${diff>0?'#16a34a':diff<0?'#dc2626':'#6b7280'}">${p}% ${diff>0?'▲'+diff:diff<0?'▼'+Math.abs(diff):'—'}</strong></span>
+          </div>
+          <div class="prog-bg"><div class="prog-fill" style="width:${p}%;background:${COLORS[i]}"></div></div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderRadarChart(){
+  destroyChart('radarChart');
+  const avgs=SUBJECTS.map((_,i)=>round(avg(students.map(s=>s.t3[i]))));
+  charts.radarChart=new Chart(document.getElementById('radarChart'),{
+    type:'radar',
+    data:{
+      labels:SUBJECTS,
+      datasets:[
+        {label:'Class avg',data:avgs,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.1)',pointBackgroundColor:'#2563eb',borderWidth:2},
+        {label:'Target',data:Array(5).fill(85),borderColor:'#16a34a',borderDash:[5,3],backgroundColor:'rgba(22,163,74,.04)',borderWidth:1.5,pointRadius:0}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{stepSize:20,callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.1)'}}}}
+  });
+}
+
+function renderInsights(){
+  const list=[];
+  students.forEach(s=>{
+    const a=round(avg(s.t3)),t=getTrend(s);
+    if(a<settings.passMark) list.push({type:'red',icon:'ti-alert-triangle',text:`<strong>${s.name}</strong> is failing with ${a}% average — needs urgent intervention.`});
+    else if(t==='down') list.push({type:'amber',icon:'ti-trending-down',text:`<strong>${s.name}</strong> is on a declining trend. Early support recommended.`});
+    else if(t==='up'&&a>=85) list.push({type:'green',icon:'ti-trophy',text:`<strong>${s.name}</strong> is excelling and improving — consider advanced coursework.`});
+  });
+  const subAvgs=SUBJECTS.map((_,i)=>({n:SUBJECTS[i],v:avg(students.map(s=>s.t3[i]))}));
+  const weak=subAvgs.reduce((a,b)=>b.v<a.v?b:a);
+  const strong=subAvgs.reduce((a,b)=>b.v>a.v?b:a);
+  list.unshift({type:'blue',icon:'ti-book',text:`Weakest subject: <strong>${weak.n}</strong> (avg ${round(weak.v)}%) — consider remedial sessions.`});
+  list.unshift({type:'green',icon:'ti-star',text:`Strongest subject: <strong>${strong.n}</strong> (avg ${round(strong.v)}%) — great momentum!`});
+  const ico={red:'ico-red',amber:'ico-amber',green:'ico-green',blue:'ico-blue'};
+  document.getElementById('insightsList').innerHTML=list.map(item=>`
+    <div class="insight-item">
+      <div class="insight-ico ${ico[item.type]}"><i class="ti ${item.icon}" style="font-size:15px"></i></div>
+      <div style="font-size:13px;line-height:1.5">${item.text}</div>
+    </div>`).join('');
+
+  const atRisk=students.filter(s=>round(avg(s.t3))<settings.passMark||getTrend(s)==='down');
+  document.getElementById('atRiskArea').innerHTML=atRisk.length?`
+    <div class="table-wrap"><table>
+      <thead><tr><th>Student</th><th>Class</th><th>Average</th><th>Trend</th><th>Risk</th></tr></thead>
+      <tbody>${atRisk.map(s=>{
+        const a=round(avg(s.t3)),t=getTrend(s),risk=a<settings.passMark?'High':'Medium';
+        return`<tr>
+          <td><strong style="font-weight:500">${s.name}</strong></td>
+          <td>${s.class}</td>
+          <td>${a}%</td>
+          <td>${trendHtml(t)}</td>
+          <td><span class="grade-badge" style="background:${risk==='High'?'#fee2e2':'#fef3c7'};color:${risk==='High'?'#b91c1c':'#a16207'}">${risk}</span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`:`<p style="color:var(--muted);font-size:13px;padding:.5rem 0">No at-risk students detected.</p>`;
+}
+
+function renderTable(){
+  const search=(document.getElementById('searchBox')?.value||'').toLowerCase();
+  const gf=document.getElementById('gradeFilter')?.value||'';
+  const tf=document.getElementById('trendFilter')?.value||'';
+  const cf=document.getElementById('classFilter')?.value||'';
+  const filtered=students.filter(s=>{
+    const a=round(avg(s.t3));
+    return(!search||s.name.toLowerCase().includes(search)||s.class.toLowerCase().includes(search))
+      &&(!gf||getGrade(a)===gf)&&(!tf||getTrend(s)===tf)&&(!cf||s.class===cf);
+  });
+  document.getElementById('tableBody').innerHTML=filtered.map((s,idx)=>{
+    const a=round(avg(s.t3)),g=getGrade(a);
+    return`<tr>
+      <td style="color:var(--muted)">${idx+1}</td>
+      <td><span style="font-weight:500">${s.name}</span></td>
+      <td><span style="background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500">${s.class}</span></td>
+      ${s.t3.map(v=>`<td>${v}</td>`).join('')}
+      <td><strong style="font-weight:600">${a}%</strong></td>
+      <td><span class="grade-badge g-${g}">${g}</span></td>
+      <td>${trendHtml(getTrend(s))}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="editStudent(${s.id})" title="Edit"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-sm" style="color:#dc2626;margin-left:4px" onclick="deleteStudent(${s.id})" title="Delete"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function populateClassFilter(){
+  const classes=[...new Set(students.map(s=>s.class))].sort();
+  const sel=document.getElementById('classFilter');
+  if(sel) sel.innerHTML=`<option value="">All classes</option>`+classes.map(c=>`<option>${c}</option>`).join('');
+}
+
+function populateCompareSelects(){
+  const opts=students.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  ['cmp1','cmp2','cmp3'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=`<option value="">—</option>`+opts;
+  });
+}
+
+function renderCompare(){
+  const ids=['cmp1','cmp2','cmp3'].map(id=>parseInt(document.getElementById(id)?.value)).filter(Boolean);
+  if(ids.length<2){destroyChart('compareChart');return}
+  const sel=ids.map(id=>students.find(s=>s.id===id)).filter(Boolean);
+  destroyChart('compareChart');
+  charts.compareChart=new Chart(document.getElementById('compareChart'),{
+    type:'bar',
+    data:{
+      labels:SUBJECTS,
+      datasets:sel.map((s,i)=>({label:s.name.split(' ')[0],data:s.t3,backgroundColor:COLORS[i],borderRadius:5,borderSkipped:false}))
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top'}},scales:{x:{grid:{display:false}},y:{min:0,max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}}}}
+  });
+}
+
+// ---- METRICS ----
+function renderMetrics(){
+  const avgs=students.map(s=>round(avg(s.t3)));
+  const classAvg=round(avg(avgs));
+  const top=students.reduce((a,b)=>avg(b.t3)>avg(a.t3)?b:a);
+  const atRisk=students.filter(s=>round(avg(s.t3))<settings.passMark).length;
+  const improved=students.filter(s=>getTrend(s)==='up').length;
+  const passCount=students.filter(s=>round(avg(s.t3))>=settings.passMark).length;
+  document.getElementById('metricsGrid').innerHTML=`
+    <div class="metric-card">
+      <div class="metric-label">Class average</div>
+      <div class="metric-val" style="color:#2563eb">${classAvg}%</div>
+      <span class="metric-badge badge-up">Term 3</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Top performer</div>
+      <div class="metric-val" style="font-size:17px;font-weight:600">${top.name.split(' ')[0]}</div>
+      <span class="metric-badge badge-up">${round(avg(top.t3))}%</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">At-risk students</div>
+      <div class="metric-val" style="color:${atRisk>0?'#dc2626':'#16a34a'}">${atRisk}</div>
+      <span class="metric-badge ${atRisk>0?'badge-down':'badge-up'}">Below ${settings.passMark}%</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Improving trend</div>
+      <div class="metric-val" style="color:#16a34a">${improved}</div>
+      <span class="metric-badge badge-up">students</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Pass rate</div>
+      <div class="metric-val" style="color:#16a34a">${round(passCount/students.length*100)}%</div>
+      <span class="metric-badge badge-neutral">${passCount}/${students.length}</span>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total enrolled</div>
+      <div class="metric-val">${students.length}</div>
+      <span class="metric-badge badge-neutral">students</span>
+    </div>
+  `;
+}
+
+// ---- MODAL ----
+let editingId=null;
+function openAddModal(){editingId=null;document.getElementById('modalTitle').textContent='Add new student';['f_name','f_class','f_math','f_science','f_english','f_history','f_cs','f_attend'].forEach(id=>{document.getElementById(id).value=''});document.getElementById('addModal').classList.add('open')}
+function closeModal(){document.getElementById('addModal').classList.remove('open');editingId=null}
+document.getElementById('addModal').addEventListener('click',e=>{if(e.target===document.getElementById('addModal'))closeModal()});
+
+function editStudent(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  editingId=id;
+  document.getElementById('modalTitle').textContent='Edit student';
+  document.getElementById('f_name').value=s.name;
+  document.getElementById('f_class').value=s.class;
+  s.t3.forEach((v,i)=>{['f_math','f_science','f_english','f_history','f_cs'][i]&&(document.getElementById(['f_math','f_science','f_english','f_history','f_cs'][i]).value=v)});
+  document.getElementById('f_attend').value=s.attend;
+  document.getElementById('addModal').classList.add('open');
+}
+
+function deleteStudent(id){
+  if(!confirm('Delete this student?'))return;
+  students=students.filter(s=>s.id!==id);
+  refreshAll();
+}
+
+function saveStudent(){
+  const name=document.getElementById('f_name').value.trim();
+  const cls=document.getElementById('f_class').value.trim();
+  const scores=['f_math','f_science','f_english','f_history','f_cs'].map(id=>+document.getElementById(id).value||0);
+  const attend=+document.getElementById('f_attend').value||80;
+  if(!name||!cls){alert('Name and class are required.');return}
+  if(scores.some(s=>s<0||s>100)){alert('Scores must be between 0 and 100.');return}
+  if(editingId){
+    const s=students.find(x=>x.id===editingId);
+    s.name=name;s.class=cls;s.t3=scores;s.attend=attend;
+    s.t2=scores.map(v=>Math.max(0,v-Math.round(Math.random()*8)));
+    s.t1=scores.map(v=>Math.max(0,v-Math.round(Math.random()*15)));
+  } else {
+    const t2=scores.map(v=>Math.max(0,v-Math.round(Math.random()*8)));
+    const t1=scores.map(v=>Math.max(0,v-Math.round(Math.random()*15)));
+    students.push({id:Date.now(),name,class:cls,t1,t2,t3:scores,attend});
+  }
+  closeModal();refreshAll();
+}
+
+// ---- EXPORT ----
+function exportCSV(){
+  const hdr='Name,Class,Math,Science,English,History,CS,Average,Grade,Trend,Attendance\n';
+  const rows=students.map(s=>{const a=round(avg(s.t3));return`${s.name},${s.class},${s.t3.join(',')},${a},${getGrade(a)},${getTrend(s)},${s.attend}`});
+  const b=new Blob([hdr+rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='student_results.csv';a.click();
+}
+
+// ---- REPORT ----
+function generateReport(){
+  const avgs=students.map(s=>round(avg(s.t3)));
+  const classAvg=round(avg(avgs));
+  const pass=students.filter(s=>round(avg(s.t3))>=settings.passMark).length;
+  const atRisk=students.filter(s=>round(avg(s.t3))<settings.passMark);
+  document.getElementById('reportArea').innerHTML=`
+    <div style="border:1px solid var(--border);border-radius:8px;padding:1.25rem">
+      <h2 style="font-size:16px;font-weight:600;margin-bottom:12px">Academic Performance Report — Term 3</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Generated: ${new Date().toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})}</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px">
+        <div style="background:#f9fafb;border-radius:8px;padding:.75rem"><div style="font-size:11px;color:var(--muted)">Total students</div><div style="font-size:20px;font-weight:700">${students.length}</div></div>
+        <div style="background:#f9fafb;border-radius:8px;padding:.75rem"><div style="font-size:11px;color:var(--muted)">Class average</div><div style="font-size:20px;font-weight:700;color:#2563eb">${classAvg}%</div></div>
+        <div style="background:#f9fafb;border-radius:8px;padding:.75rem"><div style="font-size:11px;color:var(--muted)">Pass rate</div><div style="font-size:20px;font-weight:700;color:#16a34a">${round(pass/students.length*100)}%</div></div>
+        <div style="background:#f9fafb;border-radius:8px;padding:.75rem"><div style="font-size:11px;color:var(--muted)">At risk</div><div style="font-size:20px;font-weight:700;color:#dc2626">${atRisk.length}</div></div>
+      </div>
+      <p style="font-size:13px;line-height:1.6"><strong>Summary:</strong> The class demonstrated ${classAvg>=75?'strong':'moderate'} academic performance in Term 3 with a class average of ${classAvg}%. ${pass} out of ${students.length} students passed (${round(pass/students.length*100)}% pass rate). ${atRisk.length>0?`${atRisk.length} student(s) (${atRisk.map(s=>s.name).join(', ')}) remain below the passing threshold and require intervention.`:' All students are above the passing threshold.'}</p>
+    </div>`;
+}
+
+// ---- SETTINGS ----
+function applySettings(){
+  settings.gradeA=+document.getElementById('gradeA').value||90;
+  settings.gradeB=+document.getElementById('gradeB').value||75;
+  settings.gradeC=+document.getElementById('gradeC').value||60;
+  settings.gradeD=+document.getElementById('gradeD').value||45;
+  settings.passMark=+document.getElementById('passMark').value||50;
+  refreshAll();alert('Settings applied!');
+}
+
+// ---- NAVIGATION ----
+const PAGE_META={
+  dashboard:['Dashboard','Overview of all student performance'],
+  students:['Students','Manage and filter student records'],
+  results:['Results','Detailed subject-wise breakdown'],
+  predict:['Predictions','AI-powered future performance forecast'],
+  insights:['Insights & Alerts','Smart flags and recommendations'],
+  compare:['Compare Students','Side-by-side performance comparison'],
+  report:['Reports','Generate and print academic reports'],
+  settings:['Settings','Configure grading thresholds'],
+};
+
+function navigate(page,el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const [title,sub]=PAGE_META[page]||[page,''];
+  document.getElementById('pageTitle').textContent=title;
+  document.getElementById('pageSub').textContent=sub;
+
+  if(page==='students'){renderTable();populateClassFilter()}
+  if(page==='results'){renderSubjectBreakChart();renderHistoChart()}
+  if(page==='predict'){renderPredictChart();populatePredictSelect()}
+  if(page==='insights'){renderInsights();renderRadarChart()}
+  if(page==='compare'){populateCompareSelects()}
+}
+
+function refreshAll(){
+  renderMetrics();
+  renderSubjectChart();
+  renderGradeChart();
+  renderTrendChart();
+  renderTopChart();
+  renderAttendChart();
+  renderTable();
+  populateClassFilter();
+}
+
+// ---- INIT ----
+refreshAll();
+</script>
+</body>
+</html>
